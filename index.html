@@ -199,7 +199,7 @@ body:has(.view:target) .view.active:not(:target){display:none}.grid{display:grid
         <label>Ayah</label>
         <input id="qAyah" type="number" min="1" value="1">
       </div>
-      <button class="btn primary" id="qOpen" type="button">Open Passage</button>
+      <button class="btn primary" id="qOpen" type="button">Go to Ayah</button>
     </div>
 
     <div class="actions" style="margin:10px 0 14px">
@@ -346,7 +346,14 @@ body:has(.view:target) .view.active:not(:target){display:none}.grid{display:grid
 <div class="field"><label>New memorization</label><select id="sPaused"><option value="0">Active</option><option value="1">Paused — Revision Only</option></select></div>
 <div class="field"><label>Revision intervals (days)</label><input id="sIntervals" value="0,1,3,7,14,30,60,90"></div>
 <div class="field"><label>Repeat each Ayah</label><select id="sRepeat"><option>1</option><option selected>3</option><option>5</option><option>10</option></select></div>
-</div><div class="actions" style="margin-top:14px"><button class="btn primary" id="saveSettings">Save & Recalculate Future Plan</button><button class="btn" id="resetProgress">Reset User Progress</button></div><p id="settingsMsg" class="sub"></p></div>
+</div><div class="actions" style="margin-top:14px">
+<button class="btn primary" id="saveSettings">Save & Recalculate Future Plan</button>
+<button class="btn" id="backupData" type="button">Backup Progress</button>
+<label class="btn" for="restoreData" style="cursor:pointer">Restore Backup</label>
+<input id="restoreData" type="file" accept=".json,application/json" style="display:none">
+<button class="btn" id="resetProgress">Reset User Progress</button>
+</div>
+<div class="notice" style="margin-top:12px"><b>Backup:</b> creates a small JSON file containing your plan, memorization progress, revision history and settings — not Quran text. On iPhone, save it to Google Drive using the Files/Share menu.</div><p id="settingsMsg" class="sub"></p></div>
 <div class="notice danger" style="margin-top:12px"><b>Quran data integrity:</b> the app never generates or silently corrects Quran text. The uploaded source parsed 6,235 numbered Ayahs; 113/114 Surah counts validate. Al-Hijr 15:99 was missing from the parsed source, so the app flags that gap rather than inserting AI-generated or manually reconstructed Quran text.</div></section>
 
 <div class="footer">Local-first MVP • Quran corpus and user progress are separate • Revision history is append-only • Browser localStorage stores user state on this device.</div>
@@ -483,8 +490,33 @@ $("qNext").addEventListener("click",()=>{
 $("qStart").addEventListener("click",()=>startHere(+$("qSurah").value,+$("qAyah").value));
 $("qAddRevision").addEventListener("click",()=>addRevision(+$("qSurah").value,+$("qAyah").value));
 $("recalc90").onclick=renderFuturePlan;
+
+function makeBackup(){return {app:"Hifdh Quran Memorization & Revision",schemaVersion:1,exportedAt:new Date().toISOString(),settings:settings,progress:progress,revisionHistory:history};}
+function downloadBackup(){
+  let blob=new Blob([JSON.stringify(makeBackup(),null,2)],{type:"application/json"});
+  let u=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=u;a.download="hifdh-backup-"+today()+".json";document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(u),1000);
+  if($("settingsMsg")) $("settingsMsg").textContent="Backup created. Save the JSON file to Google Drive.";
+}
+function restoreBackupFile(file){
+  let reader=new FileReader();
+  reader.onload=function(){
+    try{
+      let b=JSON.parse(reader.result);
+      if(!b||b.app!=="Hifdh Quran Memorization & Revision"||!b.settings||typeof b.progress!=="object"||!Array.isArray(b.revisionHistory)) throw new Error("Not a valid Hifdh backup.");
+      if(!confirm("Restore this backup? Current local progress will be replaced.")) return;
+      settings=b.settings;progress=b.progress;history=b.revisionHistory;currentRevision=null;save();
+      renderSettings();renderDashboard();
+      $("settingsMsg").textContent="Backup restored successfully.";
+    }catch(e){alert("Backup could not be restored: "+e.message);}
+  };reader.readAsText(file);
+}
+$("backupData").addEventListener("click",downloadBackup);
+$("restoreData").addEventListener("change",function(){if(this.files&&this.files[0])restoreBackupFile(this.files[0]);this.value="";});
+
 $("dark").onclick=()=>{document.body.classList.toggle("dark");$("dark").textContent=document.body.classList.contains("dark")?"Light":"Dark"};
-$("export").onclick=()=>{let blob=new Blob([JSON.stringify({settings,progress,revisionHistory:history,exportedAt:new Date().toISOString()},null,2)],{type:"application/json"}),u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download="hifdh-progress.json";a.click();URL.revokeObjectURL(u)}
+$("export").onclick=downloadBackup;
 fillSurahs();$("qSurah").value=settings.surah;$("qAyah").value=settings.ayah;show(location.hash.slice(1)||"dashboard");
 </script>
 <script>

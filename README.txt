@@ -22,3 +22,5 @@ QURAN DATA INTEGRITY
 The app preserves the existing source warning: the uploaded document parsed 6,235 numbered Ayahs and 113/114 Surah counts validated. Al-Hijr 15:99 is not silently reconstructed.
 
 V2: Quran tab now has explicit Surah/Ayah controls, previous/next navigation, Start Memorizing From Here, and Add to Revision.
+
+V5: Go to Ayah wording; Backup Progress; validated Restore Backup; service-worker cache v5.
