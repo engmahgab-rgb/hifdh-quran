@@ -1,4 +1,4 @@
-const CACHE = "hifdh-quran-v3";
+const CACHE = "hifdh-quran-v4";
 const ASSETS = [
   "./",
   "./index.html",
